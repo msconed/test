@@ -2,17 +2,15 @@
 
 
 Misc::start();
-Misc::csrf_token();
-Misc::session_message();
 
 class Misc
 {
-    public static function goHome()
+    public static function goHome(): void
     {
         header('Location: http://localhost:3000/');
     }
 
-    public static function session_message()
+    public static function session_message(): void
     {
         if (!empty($_SESSION['errorMessage']))
         {
@@ -21,17 +19,25 @@ class Misc
         }
     }
 
-    public static function csrf_token()
+    public static function csrf_token(): void
     {
         if (empty($_SESSION['_token'])) {
             $_SESSION['_token'] = bin2hex(random_bytes(32));
         }
     }
 
-    public static function start()
+    public static function start(): void
     {
         session_start();
         define('MAX_BROS_OR_SISTRS', 30);
+        Misc::csrf_token();
+        Misc::session_message();
+    }
+
+    public static function array_multisum(array $arr): mixed
+    {
+        $sum = array_sum($arr);
+        return $sum <= 0 ? " " : $sum;
     }
 }
 
@@ -43,7 +49,7 @@ class Database
         return ['dsn' => $config['dsn'],  'user' => $config['user'], 'pass' => $config['pass']];
     }
 
-    public static function addComment($text)
+    public static function addComment($text): void
     {
         $config = Database::getConfig();
         $pdo = new PDO($config['dsn'], $config['user'], $config['pass']);
@@ -64,9 +70,7 @@ class interVolgaTests
         /*  Тест - У Алисы есть n сестер и m братьев. 
             Описание:
             Напишите функцию на php, принимающую эти параметры и возвращающую количество сестер произвольного брата Алисы.
-        */
-
-        // Чтобы было
+        */ 
         if ($countBrothers <= 0) {return "у Алисы нет братьев :(";}
         if ($countSisters <= 0) {return "у Алисы нет сестёр :(";}
         if ($countSisters >= MAX_BROS_OR_SISTRS or $countBrothers >= MAX_BROS_OR_SISTRS) {return "Это слишком...";}
@@ -78,7 +82,7 @@ class interVolgaTests
     }
 
 
-    public static function news()
+    public static function news(): void
     {
         /*  Тест - Дан текст новости 
             Описание:
@@ -133,7 +137,7 @@ class interVolgaTests
     }
 
 
-    public static function getComments()
+    public static function getComments(): void
     {
         /*
             Тест - вывод комментариев
@@ -141,7 +145,7 @@ class interVolgaTests
         $config = Database::getConfig();
         $pdo = new PDO($config['dsn'], $config['user'], $config['pass']);
 
-        $sql = 'SELECT * FROM comments';
+        $sql = 'SELECT text, insert_at FROM comments';
 
         $result = $pdo->query($sql, PDO::FETCH_ASSOC)->fetchAll();
 
@@ -151,16 +155,14 @@ class interVolgaTests
             $time = $comment['insert_at'];
             echo 
                 "<div style='display:flex;gap:1rem;'> 
-                    <p>$text</p>
-                    <p>||</p>
-                    <p>$time</p>
+                    <p>$text</p> <p>||</p> <p>$time</p>
                 </div>
                 ";
         }
     }
 
 
-    public static function arrayTest()
+    public static function arrayTest(): void
     {
         $data = [
             ['Иванов', 'Математика', 5],
@@ -169,45 +171,47 @@ class interVolgaTests
             ['Петров', 'Математика', 5],
             ['Сидоров', 'Физика', 4],
             ['Иванов', 'Физика', 4],
-            ['Петров', 'ОБЖ', 4],
+            ['Петров', 'ОБЖ', 4]
         ];
 
-        // ['Предмет' => ['Ученик' => 'Суммарная_оценка_за_предмет', 'Ученик' => 'Суммарная_оценка_за_предмет']]
-        $result = [];
+        $items = array_unique(array_column($data, 1));
+        sort($items);
+
+        /* [
+            'Ученик' => ['Предмет' => [список_оценок], 'Предмет' => [список_оценок],
+            'Ученик' => ['Предмет' => [список_оценок], 'Предмет' => [список_оценок]
+            ];
+        */
+        $studentsAndGrades = [];
 
 
         foreach ($data as [$student, $item, $grade])
         {
-            if (!isset($result[$item]))
-            {
-                // Если предмета еще нет, добавляем его с первым учеником и оценкой
-                $result[$item] = [$student => $grade];
-            } else 
-            {
-                // Если предмет уже есть, ищем его индекс и добавляем новую оценку
-                if (!isset($result[$item][$student])) {
-                    $result[$item][$student] = $grade; // Если оценки для этого ученика еще нет - добавляем
-                } else {
-                    $result[$item][$student] += $grade; // Если оценка для ученика уже есть - суммируем
-                }
-            }
-
+            $studentsAndGrades = array_merge_recursive($studentsAndGrades, [$student => [$item => [$grade]]]);
         }
-
-        foreach($result as $item => $studentInfo)
-        {
-
-            print_r($item);
-
-        }
+        arsort($studentsAndGrades);
         
+        
+        if (count($items) > 0)
+        {
+            echo "<table>
+                    <tr>
+                        <th>
+                        </th>";
+            array_map(function($item) {echo "<th>$item</th>";}, $items);
+            echo   "</tr>";
 
-
-
-
+            foreach ($studentsAndGrades as $student => $grades)
+            {
+                echo "<tr><td>$student</td>";
+                foreach ($items as $item)
+                {   $grade = Misc::array_multisum($grades[$item]??[]);
+                    echo "<td>$grade</td>";
+                }
+                echo "</tr>";
+            }
+                           
+            echo "</table>";
+        }
     }
-
-
-
-
 }
