@@ -172,7 +172,8 @@ class interVolgaTests
             ['Петров', 'ОБЖ', 4]
         ];
 
-        $items = array_unique(array_column($data, 1)) ?? [];
+        // Данные жестко заданы, поэтому не проверяем содержимое массива
+        $items = array_unique(array_column($data, 1));
         sort($items);
 
 
@@ -192,29 +193,26 @@ class interVolgaTests
 
         arsort($studentsAndGrades);
         
-        // Доп. проверка чтобы не создавать таблицу в случае отсутствия предметов
-        if (count($items) > 0)
-        {
-            echo "<table>
-                    <tr>
-                        <th>
-                        </th>";
-            // Создаем таблицу и сразу вписываем все предметы
-            array_map(function($item) {echo "<th>$item</th>";}, $items);
-            echo   "</tr>";
 
-            foreach ($studentsAndGrades as $student => $grades)
-            {
-                echo "<tr><td>$student</td>";
-                foreach ($items as $item)
-                {   // Ищем предмет в оценках ученика, если его нет, то будет пробел в оценках
-                    $grade = Misc::array_multisum($grades[$item] ?? []);
-                    echo "<td>$grade</td>";
-                }
-                echo "</tr>";
+        echo "<table>
+                <tr>
+                    <th>
+                    </th>";
+        // Создаем таблицу и сразу вписываем все предметы
+        array_map(function($item) {echo "<th>$item</th>";}, $items);
+        echo   "</tr>";
+
+        foreach ($studentsAndGrades as $student => $grades)
+        {
+            echo "<tr><td>$student</td>";
+            foreach ($items as $item)
+            {   // Ищем предмет в оценках ученика, если его нет, то будет пробел в оценках
+                $grade = Misc::array_multisum($grades[$item] ?? []);
+                echo "<td>$grade</td>";
             }
-                           
-            echo "</table>";
+            echo "</tr>";
         }
+                           
+        echo "</table>";
     }
 }
