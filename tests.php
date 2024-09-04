@@ -19,7 +19,7 @@ class Misc
         }
     }
 
-    public static function csrf_token(): void
+    public static function csrf_token_create(): void
     {
         if (empty($_SESSION['_token'])) {
             $_SESSION['_token'] = bin2hex(random_bytes(32));
@@ -30,7 +30,7 @@ class Misc
     {
         session_start();
         define('MAX_BROS_OR_SISTRS', 30);
-        Misc::csrf_token();
+        Misc::csrf_token_create();
         Misc::session_message();
     }
 
@@ -105,7 +105,6 @@ class interVolgaTests
         $text = trim($text);
         $wordLimit = 29;
 
-        // Используем регулярные выражения для поиска всех слов и тегов
         preg_match_all('/(<.*?>|[^<>\s]+)/', $text, $matches);
         
         $words = [];
@@ -119,8 +118,7 @@ class interVolgaTests
                 // Если это слово, добавляем его и увеличиваем счетчик
                 $words[] = $part;
                 $count++;
-        
-                // Если достигли лимита, выходим из цикла
+
                 if ($count >= $wordLimit) {
                     break;
                 }
@@ -147,7 +145,7 @@ class interVolgaTests
 
         $sql = 'SELECT text, insert_at FROM comments';
 
-        $result = $pdo->query($sql, PDO::FETCH_ASSOC)->fetchAll();
+        $result = $pdo->query($sql, PDO::FETCH_ASSOC)->fetchAll() ?? [];
 
         foreach ($result as $comment)
         {
@@ -174,30 +172,34 @@ class interVolgaTests
             ['Петров', 'ОБЖ', 4]
         ];
 
-        $items = array_unique(array_column($data, 1));
+        $items = array_unique(array_column($data, 1)) ?? [];
         sort($items);
 
+
+        $studentsAndGrades = [];
+
+        // К этому решению пришел спустя довольно долгое время...
+        // Берем изначальный массив и пересобираем его в формат: 
         /* [
             'Ученик' => ['Предмет' => [список_оценок], 'Предмет' => [список_оценок],
             'Ученик' => ['Предмет' => [список_оценок], 'Предмет' => [список_оценок]
             ];
-        */
-        $studentsAndGrades = [];
-
-
+        */ 
         foreach ($data as [$student, $item, $grade])
         {
             $studentsAndGrades = array_merge_recursive($studentsAndGrades, [$student => [$item => [$grade]]]);
         }
+
         arsort($studentsAndGrades);
         
-        
+        // Доп. проверка чтобы не создавать таблицу в случае отсутствия предметов
         if (count($items) > 0)
         {
             echo "<table>
                     <tr>
                         <th>
                         </th>";
+            // Создаем таблицу и сразу вписываем все предметы
             array_map(function($item) {echo "<th>$item</th>";}, $items);
             echo   "</tr>";
 
@@ -205,7 +207,8 @@ class interVolgaTests
             {
                 echo "<tr><td>$student</td>";
                 foreach ($items as $item)
-                {   $grade = Misc::array_multisum($grades[$item]??[]);
+                {   // Ищем предмет в оценках ученика, если его нет, то будет пробел в оценках
+                    $grade = Misc::array_multisum($grades[$item] ?? []);
                     echo "<td>$grade</td>";
                 }
                 echo "</tr>";
